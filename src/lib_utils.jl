@@ -35,7 +35,6 @@ const CFG_OPTIONS = [
     (:err_dump_verbosity, UInt8),
     (:use_tabs, Bool),
     (:forward_fns, Bool),
-    (:warn_on_fn_forward, Bool),
     (:warn_on_jl_sema_query, Bool),
     (:print_convert_fail_reason, Bool),
     (:track_bindings, Bool),

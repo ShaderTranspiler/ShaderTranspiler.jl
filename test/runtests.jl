@@ -12,6 +12,8 @@ ShaderTranspiler.check_abi(false)
         cfg = ConfigHandle()
         @test cfg.ptr != C_NULL
 
+        @test_throws DomainError ConfigHandle(C_NULL)
+
         # tests underlying setters as well
         set_config_opts!(cfg;
             use_tabs=true,
@@ -100,11 +102,11 @@ ShaderTranspiler.check_abi(false)
         free_config_handle!(cfg)
         cfg = ConfigHandle()
 
-        set_config_opts!(cfg; forward_fns=true, warn_on_fn_forward=true)
+        set_config_opts!(cfg; forward_fns=true)
 
         (res, stderr_out) = capture_stderr(() -> transpile(fn_fwd_ast; cfg))
         @test successful_transpile(res)
-        @test !isempty(stderr_out)
+        @test isempty(stderr_out)
 
         set_config_opts!(cfg; forward_fns=false)
         (res, stderr_out) = capture_stderr(() -> transpile(fn_fwd_ast; cfg))

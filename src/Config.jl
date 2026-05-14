@@ -25,7 +25,7 @@ mutable struct ConfigHandle
     end
 
     function ConfigHandle(ptr::Ptr{Cvoid})
-        ptr == C_NULL && error("Cannot create a ConfigHandle that wraps a null pointer")
+        ptr == C_NULL && throw(DomainError("Cannot create a ConfigHandle that wraps a null pointer"))
 
         return new(ptr)
     end
