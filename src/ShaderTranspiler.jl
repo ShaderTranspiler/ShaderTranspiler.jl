@@ -20,11 +20,13 @@ include("transpile.jl")
 include("qual_macros.jl")
 
 #! format: off
-public check_abi
+public abi_version, check_abi
 #! format: on
 
+abi_version()::UInt8 = ccall((LIBSTC_ABI_VERSION, libstc), UInt8, ())
+
 function check_abi(print_success::Bool=true)
-    lib_abi_ver::UInt8 = ccall((LIBSTC_ABI_VERSION, libstc), UInt8, ())
+    lib_abi_ver = abi_version()
     pkg_ver = pkgversion(ShaderTranspiler)
 
     if pkg_ver.major < lib_abi_ver
