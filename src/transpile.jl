@@ -1,15 +1,15 @@
 # Low-level API:
-export unsafe_transpile, unsafe_transpile_file, unsafe_get_transpile_result, unsafe_free_transpile_handle
+export unsafe_transpile, unsafe_transpile_code, unsafe_transpile_file, unsafe_get_transpile_result, unsafe_free_transpile_handle
 
 # High-level API:
-export transpile, transpile_file
+export transpile, transpile_code, transpile_file
 
 # Low-level API for interacting with the STC lib
 
 """
     unsafe_transpile(ast::Expr, run_benchmarks::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
 
-Low-level endpoint for invoking the transpilation pipeline through the underlying STC library.
+Low-level endpoint for invoking the transpilation pipeline on Julia-parsed code through the underlying STC library.
 
 Returns a transpiler handle on success that can be used to retrieve the string output with `unsafe_get_transpile_result`, or `C_NULL` on transpilation failure.
 The caller is responsible for calling `unsafe_free_transpile_handle` on the returned handle, if it's non-null.
@@ -27,6 +27,26 @@ function unsafe_transpile(ast::Expr, run_benchmarks::Bool=false, cfg_handle::Ptr
 end
 
 """
+    unsafe_transpile_code(code::String, run_benchmarks::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
+
+Low-level endpoint for invoking the transpilation pipeline on unparsed code through the underlying STC library.
+
+Returns a transpiler result handle on success that can be used to retrieve the string output with `unsafe_get_transpile_result`, or `C_NULL` on transpilation failure.
+The caller is responsible for calling `unsafe_free_transpile_handle` on the returned handle, if it's non-null.
+"""
+function unsafe_transpile_code(code::String, run_benchmarks::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
+    GC.@preserve code begin
+        handle = ccall((LIBSTC_TRANSPILE_CODE, libstc), Ptr{Cvoid}, (Ptr{Cchar}, Bool, Ptr{Cvoid}), code, run_benchmarks, cfg_handle)
+    end
+
+    if handle == C_NULL
+        throw(STCLibError(LIBSTC_TRANSPILE_CODE, "received an invalid result handle after transpilation"))
+    end
+
+    return handle
+end
+
+"""
     unsafe_transpile_file(path::String, run_benchmarks::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
 
 Low-level endpoint for calling `unsafe_transpile` with the contents of a file.
@@ -34,7 +54,7 @@ Low-level endpoint for calling `unsafe_transpile` with the contents of a file.
 Returns `C_NULL` if the file at the given `path` could not be read, or if it contained syntactically malformed code.
 Forwards the output of `unsafe_transpile` otherwise, see its docs for argument descriptions, return details and caller responsibilities.
 """
-function unsafe_transpile_file(path::String, run_benchmark::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
+function unsafe_transpile_file(path::String, run_benchmarks::Bool=false, cfg_handle::Ptr{Cvoid}=C_NULL)::Ptr{Cvoid}
     if !isfile(path)
         println(stderr, "file not found at '$path'")
         return C_NULL
@@ -62,7 +82,7 @@ function unsafe_transpile_file(path::String, run_benchmark::Bool=false, cfg_hand
         return C_NULL
     end
 
-    return unsafe_transpile(file_expr, run_benchmark, cfg_handle)
+    return unsafe_transpile(file_expr, run_benchmarks, cfg_handle)
 end
 
 """
@@ -130,7 +150,7 @@ end
               throw_error::Bool=false,
               cfg::Union{ConfigHandle,Nothing}=nothing)::String
 
-Memory-safe endpoint for invoking the transpilation pipeline through the underlying STC library, and unwrapping its result.
+Memory-safe endpoint for invoking the transpilation pipeline on Julia-parsed code through the underlying STC library, and unwrapping its result.
 
 Returns the generated code copied into a Julia `String` on success, or the empty string on failure, if `throw_error` is disabled.
 If `throw_error` is set to `true`, any errors during transpilation (user and memory-related) will throw a runtime error, after freeing any potentially allocated memory.
@@ -139,6 +159,24 @@ If `run_benchmarks` is enabled, STC will print a breakdown for how long each tra
 """
 function transpile(ast::Expr; run_benchmarks::Bool=false, throw_error::Bool=false, cfg::Union{ConfigHandle,Nothing}=nothing)::String
     handle = unsafe_transpile(ast, run_benchmarks, cfg !== nothing ? cfg.ptr : C_NULL)
+    return safe_unwrap_transpile_result(handle, throw_error)
+end
+
+"""
+    transpile_code(code::String;
+                   run_benchmarks::Bool=false,
+                   throw_error::Bool=false,
+                   cfg::Union{ConfigHandle,Nothing}=nothing)::String
+
+Memory-safe endpoint for invoking the transpilation pipeline on unparsed code through the underlying STC library, and unwrapping its result.
+
+Returns the generated code copied into a Julia `String` on success, or the empty string on failure, if `throw_error` is disabled.
+If `throw_error` is set to `true`, any errors during transpilation (user and memory-related) will throw a runtime error, after freeing any potentially allocated memory.
+
+If `run_benchmarks` is enabled, STC will print a breakdown for how long each transpilation pass took to execute.
+"""
+function transpile_code(code::String; run_benchmarks::Bool=false, throw_error::Bool=false, cfg::Union{ConfigHandle,Nothing}=nothing)::String
+    handle = unsafe_transpile_code(code, run_benchmarks, cfg !== nothing ? cfg.ptr : C_NULL)
     return safe_unwrap_transpile_result(handle, throw_error)
 end
 

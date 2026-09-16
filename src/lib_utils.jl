@@ -17,9 +17,10 @@ export LIBSTC_ABI_VERSION
 const LIBSTC_ABI_VERSION::Symbol = _decl_fn(:abi_version)
 
 # Transpile API
-export LIBSTC_TRANSPILE, LIBSTC_GET_RESULT, LIBSTC_FREE_RESULT
+export LIBSTC_TRANSPILE, LIBSTC_TRANSPILE_CODE, LIBSTC_GET_RESULT, LIBSTC_FREE_RESULT
 
 const LIBSTC_TRANSPILE::Symbol = _decl_fn(:transpile)
+const LIBSTC_TRANSPILE_CODE::Symbol = _decl_fn(:transpile_code)
 const LIBSTC_GET_RESULT::Symbol = _decl_fn(:get_result)
 const LIBSTC_FREE_RESULT::Symbol = _decl_fn(:free_result)
 

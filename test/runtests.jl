@@ -131,6 +131,9 @@ ShaderTranspiler.check_abi(false)
             res = transpile_file(path)
             @test successful_transpile(res)
         end
+
+        res = transpile_code("begin x = 2 end")
+        @test successful_transpile(res)
     end
 
     # these are no-ops on the Julia side, so we just check that they correctly unwrap
