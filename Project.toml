@@ -11,7 +11,7 @@ stc_jll = "8dead81b-3450-5e2f-948b-0f2a405f2b3d"
 
 [sources]
 JuliaGLM = {rev = "glsl-functions", url = "https://github.com/Csabix/JuliaGLM"}
-stc_jll = {url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
+stc_jll = {rev = "stc-v0.8.5+0", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
 
 [compat]
 JuliaGLM = "0.0.1"
