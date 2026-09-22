@@ -1,4 +1,6 @@
-module LibSyms
+module LibUtils
+
+const REPO_URL::String = "https://github.com/ShaderTranspiler/stc"
 
 # used for init-time lib validation
 const _LIB_FN_SYMS = Symbol[]

@@ -6,7 +6,7 @@ export set_err_dump_verbosity!
 
 using stc_jll
 using ..ShaderTranspiler: CFG_OPTIONS
-using ..ShaderTranspiler.LibSyms
+using ..ShaderTranspiler.LibUtils
 
 """
 RAII-esque type that wraps a low-level config handle
