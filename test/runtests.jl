@@ -1,6 +1,6 @@
 using Test
 using ShaderTranspiler
-using JuliaGLM
+using GLUtils
 
 # ensure ABI is checked, even on <1.12 julia
 ShaderTranspiler.check_abi(false)

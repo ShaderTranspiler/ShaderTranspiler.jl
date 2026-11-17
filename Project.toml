@@ -1,23 +1,23 @@
 name = "ShaderTranspiler"
 uuid = "5f1345c2-4092-4c5f-a4c1-0bd0b6ca6a9b"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Szűcs Gergely <p6odrh@inf.elte.hu>"]
 
 [deps]
-JuliaGLM = "d62f3426-b328-4065-b1cd-fa40c3c5e4f7"
+GLUtils = "d62f3426-b328-4065-b1cd-fa40c3c5e4f7"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 stc_jll = "8dead81b-3450-5e2f-948b-0f2a405f2b3d"
 
 [sources]
-JuliaGLM = {rev = "v0.0.2+0", url = "https://github.com/Csabix/JuliaGLM"}
-stc_jll = {rev = "v0.9.0", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
+GLUtils = {rev = "v0.0.3+0", url = "https://github.com/ELTE-IK-CG/GLUtils.jl"}
+stc_jll = {rev = "v0.10.0", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
 
 [compat]
-JuliaGLM = "0.0.2"
+GLUtils = "0.0.3"
 Libdl = "1.11.0"
 Test = "1.11.0"
-stc_jll = "0.9.0"
+stc_jll = "0.10.0"
 
 [apps.stc]
 submodule = "CLI"
