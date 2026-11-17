@@ -10,9 +10,8 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 stc_jll = "8dead81b-3450-5e2f-948b-0f2a405f2b3d"
 
 [sources]
-# TODO
-GLUtils = {rev = "lib_rename", url = "https://github.com/ELTE-IK-CG/GLUtils.jl"}
-stc_jll = {path = "../stc_jll-release"}
+GLUtils = {rev = "v0.0.3+0", url = "https://github.com/ELTE-IK-CG/GLUtils.jl"}
+stc_jll = {rev = "v0.10.0", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
 
 [compat]
 GLUtils = "0.0.3"
