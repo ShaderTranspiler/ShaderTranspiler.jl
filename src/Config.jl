@@ -1,8 +1,10 @@
 module Config
 
 export ConfigHandle
-export free_config_handle!
-export set_err_dump_verbosity!
+export unsafe_free_config_handle!
+export set_error_dump_verbosity!, reset_initial_sizes!
+
+public unsafe_create_config_handle
 
 using stc_jll
 using ..ShaderTranspiler: CFG_OPTIONS
@@ -12,100 +14,96 @@ using ..ShaderTranspiler.LibUtils
 RAII-esque type that wraps a low-level config handle
 """
 mutable struct ConfigHandle
-    ptr::Ptr{Cvoid}
+    value::STC_ConfigHandle
 
     function ConfigHandle()
-        ptr = _create_config_handle()
-        ptr == C_NULL && error("Couldn't obtain a config handle through libstc")
+        value = unsafe_create_config_handle()
+        value == STC_NULL_CONFIG[] && error("Couldn't obtain a config handle through libstc")
 
-        handle = new(ptr)
-        finalizer(free_config_handle!, handle)
+        handle = new(value)
+        finalizer(unsafe_free_config_handle!, handle)
 
         return handle
     end
 
-    function ConfigHandle(ptr::Ptr{Cvoid})
-        ptr == C_NULL && throw(DomainError("Cannot create a ConfigHandle that wraps a null pointer"))
-
-        return new(ptr)
-    end
+    ConfigHandle(value::STC_ConfigHandle) = new(value)
 end
 
-export ERR_DUMP_NONE, ERR_DUMP_PARTIAL, ERR_DUMP_VERBOSE
-
-const ERR_DUMP_NONE::UInt8 = 0
-const ERR_DUMP_PARTIAL::UInt8 = 1
-const ERR_DUMP_VERBOSE::UInt8 = 2
-
 """
-    set_err_dump_dump_verbosity!(handle::ConfigHandle, value::UInt8)
-
-Wrapper for modifyig the err_dump_verbosity transpiler option from Julia.
-
-`value` must be one of:
-- `0` -> None
-- `1` -> Partial
-- `2` -> Verbose
-
-The `ERR_DUMP_` constants are provided as helpers.
-
-Throws `DomainError` if value is not one of the above options.
-"""
-function set_err_dump_verbosity!(ptr::Ptr{Cvoid}, value::UInt8)
-    value >= 0x03 && throw(DomainError(value, "Value cannot be greater than 3, excepted values are:\n0 -> None\n1 -> Partial\n2 -> Verbose"))
-
-    if ptr != C_NULL
-        ccall((LIBSTC_SET_ERR_DUMP_VERBOSITY, libstc), Cvoid, (Ptr{Cvoid}, UInt8), ptr, value)
-    end
-end
-
-set_err_dump_verbosity!(handle::ConfigHandle, value::UInt8) = set_err_dump_verbosity!(handle.ptr, value)
-
-"""
-    create_config_handle()::Ptr{Cvoid}
+    unsafe_create_config_handle()::STC_ConfigHandle
 
 Low-level endpoint for acquiring a new configuration handle from the stc library. External use is discouraged in favor of using `ConfigHandle`-s.
 
 Throws `STCLibError` on failure, which indicates the library returned a null pointer.
 """
-function _create_config_handle()::Ptr{Cvoid}
-    ptr = ccall((LIBSTC_CREATE_CFG, libstc), Ptr{Cvoid}, ())
-
-    if ptr == C_NULL
-        throw(STCLibError(LIBSTC_CREATE_CFG, "Couldn't create configuration handle."))
-    end
-
-    return ptr
+function unsafe_create_config_handle()::STC_ConfigHandle
+    value = ccall((LIBSTC_FN_CREATE_CFG, libstc), STC_ConfigHandle, ())
+    value == STC_NULL_CONFIG[] && throw(STCLibError("Couldn't create configuration handle.", LIBSTC_FN_CREATE_CFG))
+    return value
 end
 
-
 """
-    free_config_handle!(handle::ConfigHandle)
+    unsafe_free_config_handle!(handle::Union{ConfigHandle, STC_ConfigHandle})
 
-Frees a configuration handle and makes it point to `C_NULL`. If `handle` already points to `C_NULL`, this is a no-op.
+Frees a configuration handle and makes it point to `STC_NULL_CONFIG`. If `handle` already points to `STC_NULL_CONFIG`, this is a no-op.
 
 NOTE: handles obrained through the argumentless `ConfigHandle` constructor DO NOT NEED to be (but optionally CAN be) freed manually, this is automatically handled by a finalizer.
 """
-function free_config_handle!(handle::ConfigHandle)
-    handle.ptr == C_NULL && return
-
-    ccall((LIBSTC_FREE_CFG, libstc), Cvoid, (Ptr{Cvoid},), handle.ptr)
-    handle.ptr = C_NULL
+function unsafe_free_config_handle!(handle::STC_ConfigHandle)::Nothing
+    handle == STC_NULL_CONFIG[] && return
+    ccall((LIBSTC_FN_FREE_CFG, libstc), Cvoid, (STC_ConfigHandle,), handle)
+    return nothing
 end
+
+function unsafe_free_config_handle!(handle::ConfigHandle)::Nothing
+    unsafe_free_config_handle!(handle.value)
+    handle.value = STC_NULL_CONFIG[]
+    return nothing    
+end
+
+"""
+    set_error_dump_verbosity!(handle::ConfigHandle, value::STC_DumpVerbosity)
+
+Wrapper for modifyig the error_dump_verbosity transpiler option from Julia.
+`value` must be a valid STC_DumpVerbosity value.
+
+Throws `DomainError` if value is not one of the above options.
+"""
+function set_error_dump_verbosity!(handle::STC_ConfigHandle, value::STC_DumpVerbosity)
+    if !(LibUtils.STC_DUMP_VERBOSITY_FIRST[] <= value <= LibUtils.STC_DUMP_VERBOSITY_LAST[])
+        throw(DomainError(value, "Invalid STC_DumpVerbosity value: $value\nValue must be in range [$(LibUtils.STC_DUMP_VERBOSITY_FIRST[]), $(LibUtils.STC_DUMP_VERBOSITY_LAST[])]"))
+    end
+
+    if handle != STC_NULL_CONFIG[]
+        ccall((LIBSTC_FN_SET_ERROR_DUMP_VERBOSITY, libstc), Cvoid, (STC_ConfigHandle, UInt8), handle, value)
+    end
+end
+set_error_dump_verbosity!(handle::ConfigHandle, value::STC_DumpVerbosity) = set_error_dump_verbosity!(handle.value, value)
+
+"""
+    reset_initial_sizes!(handle::ConfigHandle)
+
+Resets initial pool arena sizes to their default values.
+"""
+function reset_initial_sizes!(handle::STC_ConfigHandle)
+    handle == STC_NULL_CONFIG[] && return
+    ccall((LIBSTC_FN_RESET_INITIAL_SIZES, libstc), Cvoid, (Ptr{Cvoid},), handle)
+end
+reset_initial_sizes!(handle::ConfigHandle) = reset_initial_sizes!(handle.value)
 
 macro _gen_cfg_setters()
     fn_defs::Vector{Expr} = Expr[]
     sizehint!(fn_defs, length(CFG_OPTIONS) - 1)
 
     for (opt, ValTy) in CFG_OPTIONS
-        opt == :err_dump_verbosity && continue
+        opt == :error_dump_verbosity && continue
 
         fn_name = Symbol("set_", opt, "!")
-        lib_fn_const = Symbol("LIBSTC_SET_", uppercase(string(opt)))
+        lib_fn_const = Symbol("LIBSTC_FN_SET_", uppercase(string(opt)))
 
         doc_str = """
             $fn_name(handle::ConfigHandle, value::$ValTy)
-            $fn_name(ptr::Ptr{Cvoid}, value::$ValTy)
+            $fn_name(handle::STC_ConfigHandle, value::$ValTy)
         
         Wrapper for modifying the `$opt` transpiler option from Julia.
         """
@@ -123,14 +121,14 @@ macro _gen_cfg_setters()
                 ccall_sig::Expr = :(Ptr{Cvoid}, $(Symbol.(arg_tys)...))
                 ccall_args::Vector{Expr} = [:(value[$i]) for i in 1:length(arg_tys)]
 
-                :(function $fn_name(ptr::Ptr{Cvoid}, value::$ValTy)
-                    ptr == C_NULL && return
-                    ccall(($lib_fn_const, libstc), Cvoid, $ccall_sig, ptr, $(ccall_args...))
+                :(function $fn_name(handle::$STC_ConfigHandle, value::$ValTy)
+                    handle == $STC_NULL_CONFIG[] && return
+                    ccall(($lib_fn_const, libstc), Cvoid, $ccall_sig, handle, $(ccall_args...))
                 end)
             else
-                :(function $fn_name(ptr::Ptr{Cvoid}, value::$ValTy)
-                    ptr == C_NULL && return
-                    ccall(($lib_fn_const, libstc), Cvoid, (Ptr{Cvoid}, $ArgTy), ptr, value)
+                :(function $fn_name(handle::$STC_ConfigHandle, value::$ValTy)
+                    handle == $STC_NULL_CONFIG[] && return
+                    ccall(($lib_fn_const, libstc), Cvoid, ($STC_ConfigHandle, $ArgTy), handle, value)
                 end)
             end
 
@@ -141,7 +139,7 @@ macro _gen_cfg_setters()
             $base_fn_def
 
             function $fn_name(handle::ConfigHandle, value::$ValTy)
-                $(fn_name)(handle.ptr, value)
+                $(fn_name)(handle.value, value)
             end
         end
 
@@ -155,8 +153,8 @@ end
 
 macro _gen_main_setter()
     fn::Expr = :(
-        function set_config_opts!(handle::ConfigHandle;)
-            handle.ptr == C_NULL && return
+        function set_config_opts!(handle::$ConfigHandle;)
+            handle.value == $STC_NULL_CONFIG[] && return
         end
     )
 
@@ -189,7 +187,7 @@ function _gen_main_setter_docs()
     doc_lines::Vector{String} = String[
         "set_config_opts!(handle::ConfigHandle; kwargs...)",
         "",
-        "Sets the provided options for the configuration pointed to by `handle`. Acts as a no-op if `handle` points to `C_NULL`.
+        "Sets the provided options for the configuration pointed to by `handle`. Acts as a no-op if `handle` points to `STC_NULL_CONFIG`.
         Otherwise identical to calling the ShaderTranspiler.Config.set_<option name>! functions for every argument individually.",
         "",
         "kwarg options are:"
