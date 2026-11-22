@@ -104,4 +104,6 @@ function _check_sym_exists(handle::Ptr{Nothing}, sym::Symbol)
     end
 end
 
+include("precompile.jl")
+
 end

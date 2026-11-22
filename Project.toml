@@ -6,6 +6,7 @@ authors = ["Szűcs Gergely <p6odrh@inf.elte.hu>"]
 [deps]
 GLUtils = "d62f3426-b328-4065-b1cd-fa40c3c5e4f7"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 stc_jll = "8dead81b-3450-5e2f-948b-0f2a405f2b3d"
 
@@ -16,6 +17,7 @@ stc_jll = {path = "../stc_jll-0.11-dev"}
 [compat]
 GLUtils = "0.0.3"
 Libdl = "1.11.0"
+PrecompileTools = "1.4.0"
 Test = "1.11.0"
 stc_jll = "0.11.0"
 
