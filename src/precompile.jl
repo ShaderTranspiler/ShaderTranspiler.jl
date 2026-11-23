@@ -5,6 +5,7 @@ _pc_value(::Type{Bool}) = false
 _pc_value(::Type{T}) where {T<:Integer} = one(T)
 _pc_value(::Type{String}) = ""
 _pc_value(::Type{T}) where {T<:Tuple} = map(_pc_value, fieldtypes(T))
+_pc_value(::Type{Module}) = GLUtils
 
 if hasproperty(stc_jll, :libstc)
     @setup_workload begin

@@ -11,6 +11,12 @@ export unsafe_transpile, unsafe_transpile_code, unsafe_transpile_file, unsafe_ge
 # High-level API:
 export transpile, transpile_code, transpile_file
 
+export auto_overwrite_gl_utils
+
+# If true, the transpiler wrappers will apply the pkg's internal GLUtils Module as the gl_utils_mod config parameter.
+# Note that this overwrites the gl_utils_mod option of any configuration passed to a transpile endpoint, and does NOT restore it at the end!
+global auto_overwrite_gl_utils::Bool = true
+
 # Low-level API for interacting with the STC lib
 
 """
@@ -23,11 +29,14 @@ Failed transpilation produces either STC_FAILED or STC_INTERNAL_ERROR as the sta
 The caller is responsible for calling `unsafe_free_transpile_handle` on the returned handle, if it's non-null.
 """
 function unsafe_transpile(ast::Expr, cfg_handle::STC_ConfigHandle = STC_NULL_CONFIG[], throw_error::Bool = false)::Tuple{STC_Status, STC_ResultHandle}
+    cfg_handle, created_cfg = _prepare_config(cfg_handle)
+    
     result_handle = Ref{STC_ResultHandle}()
-
     GC.@preserve ast begin
         status = ccall((LIBSTC_FN_TRANSPILE, libstc), STC_Status, (Any, STC_ConfigHandle, Ptr{STC_ResultHandle}), ast, cfg_handle, result_handle)
     end
+
+    _finalize_config(cfg_handle, created_cfg)
 
     _validate_transpiler_result(throw_error, status, result_handle[], LIBSTC_FN_TRANSPILE)
     return (status, result_handle[])
@@ -45,11 +54,14 @@ Failed transpilation produces either STC_FAILED or STC_INTERNAL_ERROR as the sta
 The caller is responsible for calling `unsafe_free_transpile_handle` on the returned handle, if it's non-null.
 """
 function unsafe_transpile_code(code::String, cfg_handle::STC_ConfigHandle=STC_NULL_CONFIG[], throw_error::Bool = false)::Tuple{STC_Status, STC_ResultHandle}
+    cfg_handle, created_cfg = _prepare_config(cfg_handle)
+    
     result_handle = Ref{STC_ResultHandle}()
-
     GC.@preserve code begin
         status = ccall((LIBSTC_FN_TRANSPILE_CODE, libstc), STC_Status, (Cstring, STC_ConfigHandle, Ptr{STC_ResultHandle}), code, cfg_handle, result_handle)
     end
+
+    _finalize_config(cfg_handle, created_cfg)
 
     _validate_transpiler_result(throw_error, status, result_handle[], LIBSTC_FN_TRANSPILE_CODE)
     return (status, result_handle[])
@@ -254,3 +266,23 @@ function _validate_transpiler_result(throw_error::Bool, status::STC_Status, hand
 
     return valid
 end
+
+function _prepare_config(cfg::STC_ConfigHandle)::Tuple{STC_ConfigHandle, Bool}
+    !auto_overwrite_gl_utils && return (cfg, false)
+    
+    created_cfg::Bool = false
+    if cfg == STC_NULL_CONFIG[]
+        cfg = Config.unsafe_create_config_handle()
+        created_cfg = true
+    end
+
+    Config.set_gl_utils_mod!(cfg, GLUtils)
+    return (cfg, created_cfg)    
+end
+
+# we cannot restore the old value for now, since libstc doesn't expose config getters through the C library
+function _finalize_config(cfg::STC_ConfigHandle, created_for_transpile::Bool)::Nothing
+    !created_for_transpile && return nothing
+    Config.unsafe_free_config_handle!(cfg)
+end
+_finalize_config(prepare_config_result::Tuple{STC_ConfigHandle, Bool})::Nothing = _finalize_config(prepare_config_result...)

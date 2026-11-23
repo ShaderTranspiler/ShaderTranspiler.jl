@@ -137,6 +137,7 @@ const CFG_OPTIONS = [
     (:local_size,     Tuple{UInt32,UInt32,UInt32}),
 
     (:gl_utils_path, String),
+    (:gl_utils_mod,  Module),
     (:fallback_file_path, String),
 
     (:track_timing,   Bool),

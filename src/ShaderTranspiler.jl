@@ -19,6 +19,8 @@ using .Config
 public Config
 export ConfigHandle, unsafe_free_config_handle!, set_config_opts!
 
+import GLUtils
+
 include("transpile.jl")
 include("qual_macros.jl")
 
