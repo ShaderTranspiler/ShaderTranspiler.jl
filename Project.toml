@@ -1,6 +1,6 @@
 name = "ShaderTranspiler"
 uuid = "5f1345c2-4092-4c5f-a4c1-0bd0b6ca6a9b"
-version = "0.11.0-rc.1"
+version = "0.11.0-rc.2"
 authors = ["Szűcs Gergely <p6odrh@inf.elte.hu>"]
 
 [deps]
@@ -12,7 +12,7 @@ stc_jll = "8dead81b-3450-5e2f-948b-0f2a405f2b3d"
 
 [sources]
 GLUtils = {rev = "v0.0.3+0", url = "https://github.com/ELTE-IK-CG/GLUtils.jl"}
-stc_jll = {rev = "v0.11.0-rc.1", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
+stc_jll = {rev = "v0.11.0-rc.2", url = "https://github.com/ShaderTranspiler/stc_jll.jl"}
 
 [compat]
 GLUtils = "0.0.3"
